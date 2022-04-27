@@ -27,7 +27,7 @@ def private_key_to_public_key(private_key):
     # get the public key corresponding to the private key we just generated
     c = int('0x%s'%private_key,0)
     d = keys.get_public_key(c, curve.secp256k1)
-    return '04%s%s'%('{0:x}'.format(int(d.x)), '{0:x}'.format(int(d.y)))
+    return '04%s%s'%('{0:064x}'.format(int(d.x)), '{0:064x}'.format(int(d.y)))
 
 def public_key_to_address(public_key):
     """Accept a public key and convert it to its resepective P2PKH wallet address.
@@ -36,19 +36,15 @@ def public_key_to_address(public_key):
     #print('Wanting to [%s] this to address'%public_key)
     output = []; alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     var = hashlib.new('ripemd160')
-    try:
-        var.update(hashlib.sha256(binascii.unhexlify(public_key.encode())).digest())
-        var = '00' + var.hexdigest() + hashlib.sha256(hashlib.sha256(binascii.unhexlify(('00' + var.hexdigest()).encode())).digest()).hexdigest()[0:8]
-        count = [char != '0' for char in var].index(True) // 2
-        n = int(var, 16)
-        while n > 0:
-            n, remainder = divmod(n, 58)
-            output.append(alphabet[remainder])
-        for i in range(count): output.append(alphabet[0])
-        return ''.join(output[::-1])
-    except:
-        # Nothing
-        return -1
+    var.update(hashlib.sha256(binascii.unhexlify(public_key.encode())).digest())
+    var = '00' + var.hexdigest() + hashlib.sha256(hashlib.sha256(binascii.unhexlify(('00' + var.hexdigest()).encode())).digest()).hexdigest()[0:8]
+    count = [char != '0' for char in var].index(True) // 2
+    n = int(var, 16)
+    while n > 0:
+        n, remainder = divmod(n, 58)
+        output.append(alphabet[remainder])
+    for i in range(count): output.append(alphabet[0])
+    return ''.join(output[::-1])
 
 def process(private_key, public_key, address, database):
     """Accept an address and query the database. If the address is found in the database, then it is assumed to have a 
@@ -124,4 +120,3 @@ if __name__ == '__main__':
     
     for cpu in range(multiprocessing.cpu_count()):
         multiprocessing.Process(target = main, args = (database, )).start()
-   
